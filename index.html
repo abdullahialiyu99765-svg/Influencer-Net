@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>XO Arena - Abdullahi Aliyu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #05060f;
+    --panel: #0d0f1f;
+    --panel-2: #10132a;
+    --line: #22254a;
+    --cyan: #00e5ff;
+    --pink: #ff2e88;
+    --text: #e8ecff;
+    --text-muted: #6b7394;
+    --green: #3ddc84;
+  }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; background:var(--bg); color:var(--text);
+    font-family:'Inter',sans-serif; min-height:100vh; }
+
+  body::before{
+    content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+    background: radial-gradient(circle at 20% 15%, rgba(0,229,255,0.08), transparent 40%),
+                radial-gradient(circle at 80% 75%, rgba(255,46,136,0.08), transparent 40%);
+  }
+
+  .wrap{ position:relative; z-index:1; max-width:480px; margin:0 auto; padding:30px 18px 60px; text-align:center; }
+
+  h1{
+    font-family:'Orbitron', sans-serif; font-weight:800;
+    font-size:clamp(28px,7vw,40px); margin:0;
+    background: linear-gradient(90deg, var(--cyan), var(--pink));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    letter-spacing:.02em;
+  }
+  .sub{ color:var(--text-muted); font-size:13px; margin-top:8px; letter-spacing:.04em; }
+
+  .page{ display:none; margin-top:30px; }
+  .page.active{ display:block; }
+
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:24px; margin-top:16px;
+  }
+
+  .field label{ display:block; text-align:left; font-size:11.5px; color:var(--text-muted);
+    margin-bottom:6px; letter-spacing:.04em; text-transform:uppercase; }
+  .field input{
+    width:100%; background:var(--panel-2); border:1px solid var(--line); color:var(--text);
+    font-family:'JetBrains Mono',monospace; font-size:16px; text-align:center;
+    padding:12px; border-radius:8px; letter-spacing:.1em;
+  }
+  .field input:focus{ outline:none; border-color:var(--cyan); }
+  .field{ margin-bottom:16px; }
+
+  .btn{
+    font-family:'Inter',sans-serif; font-weight:700; font-size:14px;
+    background: linear-gradient(90deg, var(--cyan), #0099b3);
+    color:#031014; border:none; padding:13px 22px; border-radius:10px; cursor:pointer;
+    width:100%; letter-spacing:.02em;
+  }
+  .btn.pink{ background: linear-gradient(90deg, var(--pink), #b3005c); color:#1a0010; }
+  .btn.ghost{ background:transparent; border:1px solid var(--line); color:var(--text-muted); }
+  .btn:active{ transform:scale(0.98); }
+
+  .divider{ display:flex; align-items:center; gap:12px; margin:22px 0; color:var(--text-muted); font-size:12px; }
+  .divider::before, .divider::after{ content:""; flex:1; height:1px; background:var(--line); }
+
+  .room-code-display{
+    font-family:'JetBrains Mono',monospace; font-size:38px; font-weight:700;
+    letter-spacing:.15em; color:var(--cyan); margin:14px 0;
+    text-shadow: 0 0 20px rgba(0,229,255,0.5);
+  }
+
+  /* Game board */
+  .turn-indicator{ font-family:'Orbitron',sans-serif; font-size:14px; margin-bottom:16px; color:var(--text-muted); }
+  .turn-indicator .me{ color:var(--cyan); font-weight:700; }
+  .turn-indicator .opp{ color:var(--pink); font-weight:700; }
+
+  .board{
+    display:grid; grid-template-columns:repeat(3, 1fr); gap:8px;
+    max-width:300px; margin:0 auto;
+  }
+  .cell{
+    aspect-ratio:1; background:var(--panel-2); border:1px solid var(--line); border-radius:12px;
+    display:flex; align-items:center; justify-content:center;
+    font-family:'Orbitron',sans-serif; font-size:42px; font-weight:800; cursor:pointer;
+    transition:.15s ease;
+  }
+  .cell:hover{ border-color:var(--cyan); }
+  .cell.x{ color:var(--cyan); text-shadow:0 0 14px rgba(0,229,255,0.6); }
+  .cell.o{ color:var(--pink); text-shadow:0 0 14px rgba(255,46,136,0.6); }
+  .cell.win{ background: rgba(61,220,132,0.15); border-color:var(--green); }
+
+  .result-banner{
+    font-family:'Orbitron',sans-serif; font-size:20px; font-weight:700;
+    margin:20px 0 10px; min-height:28px;
+  }
+  .result-banner.win{ color:var(--green); }
+  .result-banner.lose{ color:var(--pink); }
+  .result-banner.draw{ color:var(--text-muted); }
+
+  /* Stats */
+  .stats-row{ display:flex; justify-content:space-around; margin-top:8px; }
+  .stat{ text-align:center; }
+  .stat .n{ font-family:'Orbitron',sans-serif; font-size:24px; font-weight:800; }
+  .stat .l{ font-size:10px; color:var(--text-muted); letter-spacing:.06em; text-transform:uppercase; margin-top:4px; }
+  .stat.win .n{ color:var(--green); }
+  .stat.loss .n{ color:var(--pink); }
+  .stat.draw .n{ color:var(--text-muted); }
+
+  .msg{ font-size:12.5px; margin-top:10px; min-height:16px; }
+  .msg.err{ color:var(--pink); }
+  .msg.ok{ color:var(--green); }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <h1>XO ARENA</h1>
+  <div class="sub">Abdullahi Aliyu &middot; Play from anywhere, no WiFi needed</div>
+
+  <!-- HOME -->
+  <section class="page active" id="page-home">
+    <div class="card">
+      <div class="field">
+        <label>Your name</label>
+        <input type="text" id="playerName" placeholder="e.g. Abdullahi" style="text-align:left; letter-spacing:normal; font-family:'Inter',sans-serif;">
+      </div>
+      <button class="btn" id="createRoomBtn">Create Room</button>
+      <div class="divider">OR</div>
+      <div class="field">
+        <label>Room Code</label>
+        <input type="text" id="joinCodeInput" placeholder="e.g. 4821" maxlength="4">
+      </div>
+      <button class="btn pink" id="joinRoomBtn">Join Room</button>
+      <div class="msg" id="homeMsg"></div>
+    </div>
+
+    <div class="card" id="statsCard">
+      <div class="sub" style="margin-bottom:10px;">YOUR STATS</div>
+      <div class="stats-row">
+        <div class="stat win"><div class="n" id="statWins">0</div><div class="l">Wins</div></div>
+        <div class="stat loss"><div class="n" id="statLosses">0</div><div class="l">Losses</div></div>
+        <div class="stat draw"><div class="n" id="statDraws">0</div><div class="l">Draws</div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- WAITING ROOM -->
+  <section class="page" id="page-waiting">
+    <div class="card">
+      <div class="sub">Share this code with your friend</div>
+      <div class="room-code-display" id="waitingCode">----</div>
+      <div class="sub">Waiting for opponent to join&hellip;</div>
+      <button class="btn ghost" id="cancelWaitBtn" style="margin-top:20px;">Cancel</button>
+    </div>
+  </section>
+
+  <!-- GAME -->
+  <section class="page" id="page-game">
+    <div class="turn-indicator" id="turnIndicator">Waiting...</div>
+    <div class="board" id="board"></div>
+    <div class="result-banner" id="resultBanner"></div>
+    <button class="btn" id="playAgainBtn" style="display:none;">Play Again</button>
+    <button class="btn ghost" id="leaveRoomBtn" style="margin-top:10px;">Leave Room</button>
+  </section>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDqW8R817BmgBaQNNn-xxWl6uR1q7qoftg",
+    authDomain: "nubapoly-app.firebaseapp.com",
+    projectId: "nubapoly-app",
+    storageBucket: "nubapoly-app.firebasestorage.app",
+    messagingSenderId: "299976567805",
+    appId: "1:299976567805:web:8a4e36a125a72071ab0794"
+  };
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // ---- Local player identity (persists on this browser/device) ----
+  function getOrCreatePlayerId(){
+    let id = localStorage.getItem('xo_player_id');
+    if(!id){
+      id = 'p_' + Math.random().toString(36).slice(2, 10);
+      localStorage.setItem('xo_player_id', id);
+    }
+    return id;
+  }
+  const myPlayerId = getOrCreatePlayerId();
+
+  // ---- Nav ----
+  const pages = document.querySelectorAll('.page');
+  function goTo(name){
+    pages.forEach(p => p.classList.toggle('active', p.id === 'page-' + name));
+  }
+
+  // ---- Stats (stored locally per device) ----
+  function loadStats(){
+    const stats = JSON.parse(localStorage.getItem('xo_stats') || '{"wins":0,"losses":0,"draws":0}');
+    document.getElementById('statWins').textContent = stats.wins;
+    document.getElementById('statLosses').textContent = stats.losses;
+    document.getElementById('statDraws').textContent = stats.draws;
+    return stats;
+  }
+  function recordResult(type){
+    const stats = loadStats();
+    if(type === 'win') stats.wins++;
+    else if(type === 'loss') stats.losses++;
+    else stats.draws++;
+    localStorage.setItem('xo_stats', JSON.stringify(stats));
+    loadStats();
+  }
+  loadStats();
+
+  // ---- Room state ----
+  let currentRoomCode = null;
+  let mySymbol = null;
+  let unsubscribeRoom = null;
+
+  function generateRoomCode(){
+    return String(Math.floor(1000 + Math.random() * 9000));
+  }
+
+  const homeMsg = document.getElementById('homeMsg');
+  function showHomeMsg(text, ok){
+    homeMsg.textContent = text;
+    homeMsg.className = 'msg ' + (ok ? 'ok' : 'err');
+  }
+
+  const emptyBoard = () => Array(9).fill('');
+
+  // ---- Create room ----
+  document.getElementById('createRoomBtn').addEventListener('click', () => {
+    const name = document.getElementById('playerName').value.trim() || 'Player 1';
+    const code = generateRoomCode();
+
+    db.collection('xo_rooms').doc(code).set({
+      board: emptyBoard(),
+      turn: 'X',
+      playerX: { id: myPlayerId, name: name },
+      playerO: null,
+      status: 'waiting',
+      winner: null,
+      winLine: null
+    }).then(() => {
+      currentRoomCode = code;
+      mySymbol = 'X';
+      document.getElementById('waitingCode').textContent = code;
+      goTo('waiting');
+      listenToRoom(code);
+    }).catch(err => showHomeMsg(err.message, false));
+  });
+
+  // ---- Join room ----
+  document.getElementById('joinRoomBtn').addEventListener('click', () => {
+    const name = document.getElementById('playerName').value.trim() || 'Player 2';
+    const code = document.getElementById('joinCodeInput').value.trim();
+
+    if(!code){ showHomeMsg('Enter a room code', false); return; }
+
+    const roomRef = db.collection('xo_rooms').doc(code);
+    roomRef.get().then(doc => {
+      if(!doc.exists){ showHomeMsg('Room not found', false); return; }
+      const data = doc.data();
+      if(data.playerO){ showHomeMsg('Room is already full', false); return; }
+
+      roomRef.update({
+        playerO: { id: myPlayerId, name: name },
+        status: 'playing'
+      }).then(() => {
+        currentRoomCode = code;
+        mySymbol = 'O';
+        goTo('game');
+        listenToRoom(code);
+      });
+    }).catch(err => showHomeMsg(err.message, false));
+  });
+
+  document.getElementById('cancelWaitBtn').addEventListener('click', () => {
+    if(unsubscribeRoom) unsubscribeRoom();
+    if(currentRoomCode) db.collection('xo_rooms').doc(currentRoomCode).delete();
+    currentRoomCode = null;
+    goTo('home');
+  });
+
+  document.getElementById('leaveRoomBtn').addEventListener('click', () => {
+    if(unsubscribeRoom) unsubscribeRoom();
+    currentRoomCode = null;
+    goTo('home');
+  });
+
+  // ---- Board rendering ----
+  const boardEl = document.getElementById('board');
+  const cells = [];
+  for(let i = 0; i < 9; i++){
+    const cell = document.createElement('div');
+    cell.className = 'cell';
+    cell.addEventListener('click', () => makeMove(i));
+    boardEl.appendChild(cell);
+    cells.push(cell);
+  }
+
+  const WIN_LINES = [
+    [0,1,2],[3,4,5],[6,7,8],
+    [0,3,6],[1,4,7],[2,5,8],
+    [0,4,8],[2,4,6]
+  ];
+
+  function checkWinner(board){
+    for(const line of WIN_LINES){
+      const [a,b,c] = line;
+      if(board[a] && board[a] === board[b] && board[a] === board[c]){
+        return { winner: board[a], line: line };
+      }
+    }
+    if(board.every(cell => cell !== '')) return { winner: 'draw', line: null };
+    return null;
+  }
+
+  function makeMove(index){
+    if(!currentRoomCode) return;
+    const roomRef = db.collection('xo_rooms').doc(currentRoomCode);
+
+    roomRef.get().then(doc => {
+      const data = doc.data();
+      if(!data || data.status !== 'playing') return;
+      if(data.turn !== mySymbol) return;
+      if(data.board[index] !== '') return;
+
+      const newBoard = [...data.board];
+      newBoard[index] = mySymbol;
+
+      const result = checkWinner(newBoard);
+      const update = {
+        board: newBoard,
+        turn: mySymbol === 'X' ? 'O' : 'X'
+      };
+
+      if(result){
+        update.status = 'finished';
+        update.winner = result.winner;
+        update.winLine = result.line;
+      }
+
+      roomRef.update(update);
+    });
+  }
+
+  let resultRecorded = false;
+
+  function listenToRoom(code){
+    if(unsubscribeRoom) unsubscribeRoom();
+
+    unsubscribeRoom = db.collection('xo_rooms').doc(code)
+      .onSnapshot(doc => {
+        if(!doc.exists){
+          goTo('home');
+          return;
+        }
+        const data = doc.data();
+
+        if(data.status === 'waiting'){
+          goTo('waiting');
+          return;
+        }
+
+        goTo('game');
+        renderGame(data);
+      });
+  }
+
+  function renderGame(data){
+    const turnIndicator = document.getElementById('turnIndicator');
+    const resultBanner = document.getElementById('resultBanner');
+    const playAgainBtn = document.getElementById('playAgainBtn');
+
+    data.board.forEach((val, i) => {
+      cells[i].textContent = val;
+      cells[i].className = 'cell' + (val === 'X' ? ' x' : val === 'O' ? ' o' : '');
+    });
+
+    if(data.status === 'finished'){
+      if(data.winLine){
+        data.winLine.forEach(i => cells[i].classList.add('win'));
+      }
+
+      if(data.winner === 'draw'){
+        resultBanner.textContent = "It's a draw!";
+        resultBanner.className = 'result-banner draw';
+      } else if(data.winner === mySymbol){
+        resultBanner.textContent = 'You win! 🎉';
+        resultBanner.className = 'result-banner win';
+      } else {
+        resultBanner.textContent = 'You lose';
+        resultBanner.className = 'result-banner lose';
+      }
+
+      turnIndicator.textContent = 'Game over';
+      playAgainBtn.style.display = 'block';
+
+      if(!resultRecorded){
+        resultRecorded = true;
+        if(data.winner === 'draw') recordResult('draw');
+        else if(data.winner === mySymbol) recordResult('win');
+        else recordResult('loss');
+      }
+    } else {
+      resultBanner.textContent = '';
+      resultBanner.className = 'result-banner';
+      playAgainBtn.style.display = 'none';
+      resultRecorded = false;
+
+      const isMyTurn = data.turn === mySymbol;
+      turnIndicator.innerHTML = isMyTurn
+        ? `<span class="me">Your turn (${mySymbol})</span>`
+        : `<span class="opp">Opponent's turn</span>`;
+    }
+  }
+
+  document.getElementById('playAgainBtn').addEventListener('click', () => {
+    if(!currentRoomCode) return;
+    db.collection('xo_rooms').doc(currentRoomCode).update({
+      board: emptyBoard(),
+      turn: 'X',
+      status: 'playing',
+      winner: null,
+      winLine: null
+    });
+  });
+</script>
+
+</body>
+</html>
